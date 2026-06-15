@@ -136,6 +136,10 @@ alu_inst(
 
 所有测试向量均通过，Tcl Console中无`$fatal`报错信息输出，仿真正常结束。表明ALU模块的各项功能（四种运算、四个标志位）均符合设计预期。
 
+![alt text](image.png)
+
+![alt text](image-1.png)
+
 # 五、思考题
 
 1.	ALU在RISC-V CPU中与哪些部件相关？它们之间的关系是什么样的？可以结合具体指令的执行过程分析。
