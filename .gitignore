@@ -1,0 +1,26 @@
+# Vivado generated files
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.gen/
+.Xil/
+
+# Vivado project logs and journals
+vivado.log
+vivado.jou
+*.backup.jou
+*.backup.log
+vivado_*.str
+
+# Vivado intermediate / output files
+*.wdf
+*.wpc
+*.dcp
+*.pb
+*.lpr
+
+# OS generated files
+.DS_Store
+Thumbs.db
