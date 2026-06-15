@@ -20,18 +20,18 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module pc_add1#(
-    parameter   DATAWIDTH = 32	
-)(
-    input  logic [DATAWIDTH - 1:0]  A           ,
-    input  logic [DATAWIDTH - 1:0]  B           ,
-    output logic [DATAWIDTH - 1:0]  Result      
+module pc_add1 #(
+    parameter DATAWIDTH = 32
+) (
+    input  logic [DATAWIDTH - 1:0] A,
+    input  logic [DATAWIDTH - 1:0] B,
+    output logic [DATAWIDTH - 1:0] Result
 );
-    adder#(
-        .DATAWIDTH  (DATAWIDTH)
-    ) adder1(
-        .A          (A),
-        .B          (B),
-        .Result     (Result)
-    );
+  adder #(
+      .DATAWIDTH(DATAWIDTH)
+  ) adder1 (
+      .A     (A),
+      .B     (B),
+      .Result(Result)
+  );
 endmodule

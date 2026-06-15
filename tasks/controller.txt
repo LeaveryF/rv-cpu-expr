@@ -1,0 +1,125 @@
+控制器实验
+
+一、控制器的意义
+数据通路实验中我们完成了核心指令集单周期CPU数据通路中各个元件的实现。为了进一步实现单周期CPU，我们需要把这些器件按照设计图连接起来。在连接过程中，我们会进一步发现一些需要注意的细节。
+在设计图中，我们并没有说明每个器件的控制细节。例如：在先前设计的ALU中，输入端ALUControl用来选择ALU当前执行哪一种运算。但这个信号在图2-6中没有体现。除此之外，DM可以进行数据读取和写入，因此需要通过控制线来确定当前究竟是读还是写、以及mux的选择线等等。这些控制线需要由控制器给出，这就是我们需要控制器的原因。
+
+二、控制器设计思路
+在这一小节中，我们需要明确各个部件的控制信号，进而设计控制器。而控制器的设计思路则是根据32位指令，分析出所有部件所需控制信号。
+为了落实控制器的细节，我们将缺失的控制信号引入设计图。对于器件输入输出信号名称，为了简单起见，在不影响具体含义的情况下，没有和具体代码实现信号完全对应，如图4-1所示。
+
+图4-1 引入控制信号的架构图
+
+在图4-1中，我们在数据通路实验图2-6的基础上，为每个器件增加了各种控制信号。例如PC、RF和DM增加了clk信号和rst信号，IM和DM增加了ena使能信号等等。
+让我们进一步聚焦于控制信号，在图4-1中Control是需要设计的控制器。在设计Control之前，我们需要思考有哪一些部件需要用到控制信号，我们收集了图4-1中所有缺失的控制信号，下面是所有控制信号的描述。
+
+1.寄存器堆中的wen，即寄存器堆的写入信号
+2.ALUControl信号
+3.DM的wen，即DM的写入信号
+4.ALU的B端左侧的mux的选择信号，该信号用来选择ALU的B操作数来源
+5.DM右侧的mux的选择信号，该信号用来选择写回寄存器堆的数据的来源
+6.输出npc的mux的选择信号，该信号用来选择npc的计算结果
+
+Control的输出便是这6种控制信号，具体信号定义如图4-2所示。假设Control的输入为指令的opcode，即指令的低7位。
+
+信号名	无效时的效果(置0)	有效时的效果(置1)
+RegWrite	不进行寄存器写操作	需要进行寄存器写操作
+ALUSrc	第二个ALU操作数来自第二个寄存器堆的输出(即rs_reg2_rdata信号的输出)	第二个ALU操作数是指令的低12位符号扩展
+MemWrite	其他情况(读内存或空闲)	需要从DM中写入数据
+PcSrc	npc=pc+4	npc=pc+跳转地址
+MemtoReg	写回寄存器堆的输入值来自ALU	写回寄存器堆的输入值来自DM
+
+图4-2 核心指令集的控制信号分析
+
+我们会发现图4-2中只有5个信号，缺少了ALUControl信号。之所以没有设计ALUControl信号，是因为不能仅仅通过指令的opcode判断出ALUControl的取值。因为核心指令集中R型指令的opcode都是相同的，但却需要ALU进行加减与或4种操作，除外opcode外，还需要用到funct3和funct7字段来进一步设置ALU控制信号。在这里我们给出一种分级译码的设计方式。
+我们在Control中引入输出信号ALUOP，2位宽，含义如图4-3所示。
+除此之外，我们引入新元件ALU Controller。其中，ALU Controller的输入包括ALUOP、funct3和funct7；输出为ALUControl。连接方式如图4-6的红线部分。
+对于Control而言，当指令不是R型算术指令时，ALUOP根据指令的opcode进行输出。例如：如果指令opcode表明其为lw或sw指令，则ALUOP=00；如果指令opcode表明其为beq指令，则ALUOP=01；如果指令opcode表明其为R型指令，则ALUOP=10，此时不能直接判断ALU的操作。
+
+Control.ALUOP 含义 ALUController.ALUControl
+00 ALU进行加法 00
+01 ALU进行减法 01
+10 R型指令 暂时不能确定ALU行为 xx
+
+图4-3 分级译码关系图
+
+对于ALU Controller而言，如果输入的ALUOP != 10，则可以直接确定ALU的操作；但如果输入的ALUOP == 10，则需要结合其他信息来确定ALU的操作。图4-4提供了ALUController的设计思路。
+
+	输入		输入			输出
+指令操作码	ALUOP	操作	funct7字段	funct3字段	ALU期望行为	ALUControl
+lw	00 	load word	XXXXXXX	XXX	add	00 
+sw	00 	store word	XXXXXXX	XXX	add	00 
+beq	01 	branch if equal	XXXXXXX	XXX	subtract	01 
+R-type	10 	add	0000000	000 	add	00 
+R-type	10 	sub	0100000	000 	subtract	01 
+R-type	10 	and	0000000	111 	and	10 
+R-type	10 	or	0000000	110 	or	11 
+
+图4-4 ALUController的设计
+
+因此我们可以明确ALUController的结构如图4-5所示。
+
+图4-5 ALUController的结构图
+
+将设计好的ALUController和Control放入图4-1架构图中可以得到图4-6。其中Instruction[30, 14-12]是指指令的第30位以及12-14位，即funct7[5]和funct3字段。
+
+图4-6 进一步完善的架构图
+
+最后我们将图4-2中设计好的控制信号添加入Control后，并连接对应的部件，可以得到图4-7架构图。
+
+图4-7 完整架构图
+
+注意到在图4-7中的Control模块中，我们引入了Branch，这个信号并不存在于图4-2中。这样设计的原因在于Control并不能直接通过opcode就判断出beq指令的跳转是否发生。Control只能判断该指令是否为跳转指令，跳转是否发生还需要参考ALU的运算结果。
+因此需要注意Control中的Branch和PcSrc的关系。
+Branch表明该指令为分支跳转指令，而PcSrc表明该指令是分支跳转指令且要进行跳转。换而言之，PcSrc = Branch & isTrue，其中isTrue表明ALU在执行beq指令结果为真。
+
+完成设计图后，我们需要重新分析一遍4种指令的Control输出信号，如图4-8所示。
+
+指令	ALUSrc	MemtoReg	RegWrite	MemWrite	Branch	ALUOP[1]	ALUOP[0]
+R型	0 	0 	1 	0 	0 	1 	0 
+lw	1 	1 	1 	0 	0 	0 	0 
+sw	1 	X	0 	1 	0 	0 	0 
+beq	0 	X	0 	0 	1 	0 	1 
+
+图4-8 Control控制信号表
+
+4.3 控制器实现
+4.3.1 ALUController的代码实现
+ALUController是ALU的控制模块，功能描述和接口定义参考图4-9，内部设计参考图4-4。
+
+控制信号名称 方向 功能
+funct input funct3和funct7组合成的信号 最高位为funct7第6位 低三位为funct3
+ALUOP input 先前提到的ALUOP信号
+ALUControl output 先前提到的ALUControl信号
+
+图4-9 ALUController功能描述和接口定义
+
+实验内容在rv32icpu工程中，找到以下模块，并进行代码的补全。
+**rv32icpu/rv32icpu.srcs/sources_1/new/ALU_controller.sv**
+
+三、Control的代码实现
+Control元件在工程中模块为control（C是小写的），它的功能描述和接口定义如图4-10，内部设计参考图4-8。
+
+控制信号名称           方向                     功能		
+opcode	input	指令的opcode
+Branch	output	是否为分支指令 分支指令：1 其他：0
+MemToReg	output	写回寄存器的值的来源 0:ALU 1:DM
+MemWrite	output	是否需要写入DM 需要进行DM写操作：1 其他情况：0
+ALUOP	output	先前提到的ALUOP信号
+ALUSrc	output	ALU第二个操作数来源 来源于寄存器堆：0 来源于立即数生成器：1
+RegWrite	output	是否进行寄存器写操作 进行寄存器写：1 不进行：0
+
+图4-10 control功能描述和接口定义
+
+实验内容在rv32icpu工程中，找到以下模块，并进行代码的补全。
+**rv32icpu/rv32icpu.srcs/sources_1/new/control.sv**
+
+四、单周期CPU整体实现
+在完成所有部件的设计以后，我们需要按照图4-11连接。
+
+图4-11 单周期CPU架构图
+
+该实验的顶层代码为single_cpu.sv，我们给出了之前实现器件的例化模板。同学们需要按照在完成全部器件的基础上，按照图4-11进行CPU连接，将代码补全在singlg_cpu.sv中。
+
+五、逻辑测试
+在完成所有的实现后，需要在simulation模块中找到对应single_cpu的测试代码tb_single_cpu.sv，按照1 运算器实验的测试方法进行测试。

@@ -20,31 +20,30 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module top_alu#(
-    parameter   DATAWIDTH = 8	
-)(
-    input  logic [DATAWIDTH - 1:0]  A           ,
-    input  logic [DATAWIDTH - 1:0]  B           ,
-    input  logic [1:0]              ALUControl  ,
-    output logic [DATAWIDTH - 1:0]  Result      ,
-    output logic                    N           ,
-    output logic                    Z           ,
-    output logic                    V           ,
-    output logic                    C           
+module top_alu #(
+    parameter DATAWIDTH = 8
+) (
+    input  logic [DATAWIDTH - 1:0] A,
+    input  logic [DATAWIDTH - 1:0] B,
+    input  logic [            1:0] ALUControl,
+    output logic [DATAWIDTH - 1:0] Result,
+    output logic                   N,
+    output logic                   Z,
+    output logic                   V,
+    output logic                   C
 );
 
-    alu#(
-        .DATAWIDTH   (DATAWIDTH)
-    )
-    alu_inst(
-        .A           (A         ),
-        .B           (B         ),
-        .ALUControl  (ALUControl),
-        .Result      (Result    ),
-        .N           (N         ),
-        .Z           (Z         ),
-        .V           (V         ),
-        .C           (C         )
-    );
-    
+  alu #(
+      .DATAWIDTH(DATAWIDTH)
+  ) alu_inst (
+      .A         (A),
+      .B         (B),
+      .ALUControl(ALUControl),
+      .Result    (Result),
+      .N         (N),
+      .Z         (Z),
+      .V         (V),
+      .C         (C)
+  );
+
 endmodule
