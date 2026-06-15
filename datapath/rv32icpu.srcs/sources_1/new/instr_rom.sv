@@ -30,5 +30,6 @@ module instr_rom #(
     output logic [DATAWIDTH - 1:0] dout     
 );
     // 先用reg进行最简单的模拟，这段代码不会将reg综合为bram
+    // 用reg进行模拟，由于测试需要使用该变量，请不要修改
     reg [RAMWIDTH - 1:0] rom [2**(RAMDEPTH) - 1:0];
 endmodule

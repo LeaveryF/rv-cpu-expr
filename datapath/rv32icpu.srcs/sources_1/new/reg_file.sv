@@ -37,5 +37,6 @@ module reg_file #(
     output logic [DATAWIDTH - 1:0]  rs_reg1_rdata  ,
     output logic [DATAWIDTH - 1:0]  rs_reg2_rdata
 );
+    // 寄存器堆的定义，由于测试需要使用该变量，请不要修改变量名称
     logic [DATAWIDTH - 1:0] reg_bank [31:0];
 endmodule
