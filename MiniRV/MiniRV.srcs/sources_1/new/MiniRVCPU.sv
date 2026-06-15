@@ -49,6 +49,7 @@ module miniRV_SoC (
 
     );
     
+    // 下面两个模块，只需要实例化代码和连线代码，不需要创建IP核
     IROM Mem_IROM (
         .a          (),
         .spo        ()
