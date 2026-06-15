@@ -53,6 +53,12 @@ module myCPU (
     // NPC offset
     logic [31:0] npc_offset;
 
+    // Load/Store extension
+    logic [2:0]  funct3;
+    logic [1:0]  addr_low;
+    logic [31:0] load_data;
+    logic [31:0] store_data;
+
     // ========================================================================
     // Decode
     // ========================================================================
@@ -76,6 +82,8 @@ module myCPU (
     );
 
     assign irom_addr = pc_out;
+    assign funct3   = instr[14:12];
+    assign addr_low = alu_result[1:0];
 
     // ========================================================================
     // Control Unit
@@ -192,13 +200,85 @@ module myCPU (
     );
 
     // ========================================================================
+    // Load extension: extract byte/halfword, sign/zero extend
+    // ========================================================================
+    always_comb begin
+        unique case (opcode)
+            7'b0000011: begin  // Load instructions
+                unique case (funct3)
+                    3'b000: begin  // lb
+                        unique case (addr_low)
+                            2'b00: load_data = { {24{dram_rdata[ 7]}}, dram_rdata[ 7: 0] };
+                            2'b01: load_data = { {24{dram_rdata[15]}}, dram_rdata[15: 8] };
+                            2'b10: load_data = { {24{dram_rdata[23]}}, dram_rdata[23:16] };
+                            2'b11: load_data = { {24{dram_rdata[31]}}, dram_rdata[31:24] };
+                        endcase
+                    end
+                    3'b001: begin  // lh
+                        if (addr_low[1])
+                            load_data = { {16{dram_rdata[31]}}, dram_rdata[31:16] };
+                        else
+                            load_data = { {16{dram_rdata[15]}}, dram_rdata[15: 0] };
+                    end
+                    3'b010: load_data = dram_rdata;  // lw
+                    3'b100: begin  // lbu
+                        unique case (addr_low)
+                            2'b00: load_data = { 24'b0, dram_rdata[ 7: 0] };
+                            2'b01: load_data = { 24'b0, dram_rdata[15: 8] };
+                            2'b10: load_data = { 24'b0, dram_rdata[23:16] };
+                            2'b11: load_data = { 24'b0, dram_rdata[31:24] };
+                        endcase
+                    end
+                    3'b101: begin  // lhu
+                        if (addr_low[1])
+                            load_data = { 16'b0, dram_rdata[31:16] };
+                        else
+                            load_data = { 16'b0, dram_rdata[15: 0] };
+                    end
+                    default: load_data = dram_rdata;
+                endcase
+            end
+            default: load_data = dram_rdata;
+        endcase
+    end
+
+    // ========================================================================
+    // Store merge: read-modify-write for sb/sh
+    // ========================================================================
+    always_comb begin
+        unique case (opcode)
+            7'b0100011: begin  // Store instructions
+                unique case (funct3)
+                    3'b000: begin  // sb
+                        unique case (addr_low)
+                            2'b00: store_data = { dram_rdata[31: 8], rs2_rdata[ 7: 0] };
+                            2'b01: store_data = { dram_rdata[31:16], rs2_rdata[ 7: 0], dram_rdata[ 7: 0] };
+                            2'b10: store_data = { dram_rdata[31:24], rs2_rdata[ 7: 0], dram_rdata[15: 0] };
+                            2'b11: store_data = { rs2_rdata[ 7: 0], dram_rdata[23: 0] };
+                        endcase
+                    end
+                    3'b001: begin  // sh
+                        if (addr_low[1])
+                            store_data = { rs2_rdata[15: 0], dram_rdata[15: 0] };
+                        else
+                            store_data = { dram_rdata[31:16], rs2_rdata[15: 0] };
+                    end
+                    3'b010: store_data = rs2_rdata;  // sw
+                    default: store_data = rs2_rdata;
+                endcase
+            end
+            default: store_data = rs2_rdata;
+        endcase
+    end
+
+    // ========================================================================
     // Write-back MUX (4-to-1): ALU / DM / IMM / PC+4
     // ========================================================================
     MUX4_1 #(
         .WIDTH(32)
     ) mux_wb (
         .A       (alu_result),   // 00: ALU
-        .B       (dram_rdata),   // 01: DM
+        .B       (load_data),    // 01: DM (with load extension)
         .C       (imm),          // 10: IMM (for lui)
         .D       (pcadd4),       // 11: PC+4 (for jal/jalr)
         .Control (MemToReg),
@@ -209,16 +289,26 @@ module myCPU (
     // DRAM interface
     // ========================================================================
     assign dram_addr  = alu_result;
-    assign dram_wdata = rs2_rdata;
+    assign dram_wdata = store_data;
     assign dram_wen   = MemWrite;
 
     // ========================================================================
-    // Debug Interface
+    // Debug Interface (registered to capture results of the committed inst)
     // ========================================================================
-    assign debug_wb_have_inst = 1'b1;
-    assign debug_wb_pc        = pc_out;
-    assign debug_wb_ena       = RegWrite;
-    assign debug_wb_reg       = rd_addr;
-    assign debug_wb_value     = wb_data;
+    always_ff @(posedge cpu_clk, posedge cpu_rst) begin
+        if (cpu_rst) begin
+            debug_wb_have_inst <= 1'b0;
+            debug_wb_pc        <= '0;
+            debug_wb_ena       <= 1'b0;
+            debug_wb_reg       <= '0;
+            debug_wb_value     <= '0;
+        end else begin
+            debug_wb_have_inst <= 1'b1;
+            debug_wb_pc        <= pc_out;
+            debug_wb_ena       <= RegWrite;
+            debug_wb_reg       <= rd_addr;
+            debug_wb_value     <= wb_data;
+        end
+    end
 
 endmodule

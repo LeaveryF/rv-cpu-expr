@@ -407,7 +407,7 @@ python3 run_all_tests.py
 
 4.5 通过所有测试
 我们并不需要通过所有的测试，因为我们实现的指令集是MiniRV指令集⽽⾮RV32I指令集，当你发
-现你的Pass Tests除外simple（simple是⼀个简单的由add指令构成的程序），其他24个MiniRV指令
+现你的Pass Tests除simple外（simple是⼀个简单的由add指令构成的程序），其他24个MiniRV指令
 集中的指令全部通过测试时，你的CPU便通过了测试。
 
 图8
