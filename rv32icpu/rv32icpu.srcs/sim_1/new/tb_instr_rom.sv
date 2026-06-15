@@ -43,8 +43,8 @@ instr_rom #(
 
 initial begin
     ena = 1;
-    $readmemh("/home/ketted/Desktop/cs2022_2/rv32icpu/rv32icpu.srcs/sources_1/new/first_4_byte.txt", instr_rom_inst.rom, 0);
-    $readmemh("/home/ketted/Desktop/cs2022_2/rv32icpu/rv32icpu.srcs/sources_1/new/last_4_byte.txt", instr_rom_inst.rom, 65532);
+    $readmemh("/mnt/home/fupeiyi/proj/cpu-expr-new/rv32icpu/rv32icpu.srcs/sources_1/new/first_4_byte.txt", instr_rom_inst.rom, 0);
+    $readmemh("/mnt/home/fupeiyi/proj/cpu-expr-new/rv32icpu/rv32icpu.srcs/sources_1/new/last_4_byte.txt", instr_rom_inst.rom, 65532);
 
     daddr = 32'd0;
     #2;

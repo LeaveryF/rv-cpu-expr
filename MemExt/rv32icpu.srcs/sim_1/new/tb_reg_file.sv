@@ -55,8 +55,8 @@ initial begin
     wr_reg_en = 0;
     rs_reg1_addr = 0;
     rs_reg2_addr = 0;
-    $readmemh("/home/ketted/Desktop/cs2022_2/rv32icpu/rv32icpu.srcs/sources_1/new/reg_file.txt", reg_file_inst.reg_bank, 0, 4);
-    $readmemh("/home/ketted/Desktop/cs2022_2/rv32icpu/rv32icpu.srcs/sources_1/new/reg_file.txt", reg_bank, 0, 4);
+    $readmemh("/mnt/home/fupeiyi/proj/cpu-expr-new/MemExt/rv32icpu.srcs/sources_1/new/reg_file.txt", reg_file_inst.reg_bank, 0, 4);
+    $readmemh("/mnt/home/fupeiyi/proj/cpu-expr-new/MemExt/rv32icpu.srcs/sources_1/new/reg_file.txt", reg_bank, 0, 4);
     repeat (5) begin
         // 等待一个时钟上升沿
         @(posedge clk);

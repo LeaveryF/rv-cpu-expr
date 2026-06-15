@@ -44,8 +44,8 @@ initial begin
     rst = 1;
     // rst后，加载data_ram中的数据
     #3 rst = 0;
-    $readmemh("/home/ketted/Desktop/cs2022_2/rv32icpu/rv32icpu.srcs/sources_1/new/rom_data.txt", single_cpu_inst.instr_rom_inst.rom, 0);
-    $readmemh("/home/ketted/Desktop/cs2022_2/rv32icpu/rv32icpu.srcs/sources_1/new/ram_data.txt", single_cpu_inst.data_ram_inst.ram, 32);
+    $readmemh("/mnt/home/fupeiyi/proj/cpu-expr-new/rv32icpu/rv32icpu.srcs/sources_1/new/rom_data.txt", single_cpu_inst.instr_rom_inst.rom, 0);
+    $readmemh("/mnt/home/fupeiyi/proj/cpu-expr-new/rv32icpu/rv32icpu.srcs/sources_1/new/ram_data.txt", single_cpu_inst.data_ram_inst.ram, 32);
     #2;
     // data ram 0x20:ffffffff(-1), 0x24:00000001(1), 0x28:00000015(21)
     #5;

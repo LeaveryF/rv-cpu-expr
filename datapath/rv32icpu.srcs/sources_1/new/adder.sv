@@ -20,11 +20,14 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module adder#(
-    parameter   DATAWIDTH = 32
-)(
-    input  logic [DATAWIDTH - 1:0] A          ,
-    input  logic [DATAWIDTH - 1:0] B          ,
-    output logic [DATAWIDTH - 1:0] Result     
+module adder #(
+    parameter DATAWIDTH = 32
+) (
+    input  logic [DATAWIDTH - 1:0] A,
+    input  logic [DATAWIDTH - 1:0] B,
+    output logic [DATAWIDTH - 1:0] Result
 );
+
+  assign Result = A + B;
+
 endmodule
