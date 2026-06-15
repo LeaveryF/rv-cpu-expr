@@ -1,66 +1,68 @@
 `timescale 1ns / 1ps
-//////////////////////////////////////////////////////////////////////////////////
-// Company: 
-// Engineer: 
-// 
-// Create Date: 2024/04/24 10:11:33
-// Design Name: 
-// Module Name: MiniRVCPU
-// Project Name: 
-// Target Devices: 
-// Tool Versions: 
-// Description: 
-// 
-// Dependencies: 
-// 
-// Revision:
-// Revision 0.01 - File Created
-// Additional Comments:
-// 
-//////////////////////////////////////////////////////////////////////////////////
 
 module miniRV_SoC (
-    input  logic         fpga_rst,   // High active
+    input  logic         fpga_rst,
     input  logic         fpga_clk,
 
-    output logic         debug_wb_have_inst, // 当前时钟周期是否有指令写回 (对单周期CPU，可在复位后恒置1)
-    output logic [31:0]  debug_wb_pc,        // 当前写回的指令的PC (若wb_have_inst=0，此项可为任意值)
-    output               debug_wb_ena,       // 指令写回时，寄存器堆的写使能 (若wb_have_inst=0，此项可为任意值)
-    output logic [ 4:0]  debug_wb_reg,       // 指令写回时，写入的寄存器号 (若wb_ena或wb_have_inst=0，此项可为任意值)
-    output logic [31:0]  debug_wb_value      // 指令写回时，写入寄存器的值 (若wb_ena或wb_have_inst=0，此项可为任意值)
+    output logic         debug_wb_have_inst,
+    output logic [31:0]  debug_wb_pc,
+    output logic         debug_wb_ena,
+    output logic [ 4:0]  debug_wb_reg,
+    output logic [31:0]  debug_wb_value
 );
-    logic        cpu_clk = fpga_clk;
+    logic cpu_clk;
+    assign cpu_clk = fpga_clk;
 
+    // Signals between myCPU and IROM/DRAM
+    logic [31:0] irom_addr;
+    logic [31:0] irom_data;
+    logic [31:0] dram_addr;
+    logic [31:0] dram_wdata;
+    logic        dram_wen;
+    logic [31:0] dram_rdata;
 
+    // ========================================================================
+    // CPU Core
+    // ========================================================================
     myCPU Core_cpu (
         .cpu_rst            (fpga_rst),
         .cpu_clk            (cpu_clk),
 
-        // Interface to IROM
+        .irom_addr          (irom_addr),
+        .irom_data          (irom_data),
 
-        // Interface to DRAM
-   
-        
+        .dram_addr          (dram_addr),
+        .dram_wdata         (dram_wdata),
+        .dram_wen           (dram_wen),
+        .dram_rdata         (dram_rdata),
+
         .debug_wb_have_inst (debug_wb_have_inst),
         .debug_wb_pc        (debug_wb_pc),
         .debug_wb_ena       (debug_wb_ena),
         .debug_wb_reg       (debug_wb_reg),
         .debug_wb_value     (debug_wb_value)
-
     );
-    
-    // 下面两个模块，只需要实例化代码和连线代码，不需要创建IP核
+
+    // ========================================================================
+    // Instruction ROM
+    // PC is byte-addressed, IROM is word-addressed (32-bit words)
+    // IROM.a = PC[17:2] selects word within 256KB address space
+    // ========================================================================
     IROM Mem_IROM (
-        .a          (),
-        .spo        ()
+        .a   (irom_addr[17:2]),
+        .spo (irom_data)
     );
 
+    // ========================================================================
+    // Data RAM
+    // ALU result is byte-addressed, DRAM is word-addressed (32-bit words)
+    // ========================================================================
     DRAM Mem_DRAM (
-        .clk        (),
-        .a          (),
-        .spo        (),
-        .we         (),
-        .d          ()
+        .clk (cpu_clk),
+        .a   (dram_addr[17:2]),
+        .spo (dram_rdata),
+        .we  (dram_wen),
+        .d   (dram_wdata)
     );
 
 endmodule
