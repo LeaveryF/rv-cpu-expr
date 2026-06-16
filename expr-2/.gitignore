@@ -1,0 +1,21 @@
+# DC working directory files
+command.log
+filenames.log
+default.svf
+
+# DC internal library cache
+alib-52/
+
+# DC per-module intermediate files
+*.mr
+*-verilog.pvl
+*-verilog.syn
+
+# Synthesis outputs (can be regenerated)
+mapped/
+unmapped/
+rpt/
+
+# Editor temp files
+*~
+.*.swp
