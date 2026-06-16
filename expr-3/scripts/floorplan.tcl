@@ -59,24 +59,16 @@ set_ignored_layers -max_routing_layer METAL6
 report_ignored_layers
 
 #---------------------------------------------------------------------
-# 5. Power network: ring + mesh
+# 5. Power network: automated synthesis
 #---------------------------------------------------------------------
 save_mw_cel -as floorplan_prepns
 
-# Power ring
-create_power_plan_regions core -core
-set_power_ring_strategy core -core -nets {VDD VSS} \
-    -template ../scripts/basic_ring.tpl:basic_ring
+# Use automated power rail synthesis (avoids geometry bugs with manual ring/mesh)
+synthesize_fp_rail -power_budget 800 -voltage_supply 1.32 \
+    -output_directory ../output/powerplan.dir \
+    -nets {VDD VSS} -synthesize_power_plan
 
-remove_power_plan_strategy -all
-set_power_plan_strategy s_basic_no_va -nets {VDD VSS} -core \
-    -extension {{{nets:VDD}{stop:outermost_ring}} {{nets:VSS}{stop:outermost_ring}}} \
-    -template ../scripts/pg_mesh.tpl:pg_mesh_top
-
-compile_power_plan -ring
-compile_power_plan
-
-puts "\[INFO\] Power ring and mesh compiled."
+puts "\[INFO\] Power rails synthesized."
 
 #---------------------------------------------------------------------
 # 6. PG connections (after ring/mesh creation)
