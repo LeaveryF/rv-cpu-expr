@@ -1,0 +1,197 @@
+实验二 简单处理器（CPU）的逻辑综合实验
+
+一、实验要求
+1. 对实验一完成的 RISC-V 处理器，添加 PAD，编写逻辑综合脚本，完成逻辑综合，生成
+时序报告、功耗报告和面积报告。
+（1）附录部分给出一个参考脚本文件（是其他设计工程），但该脚本不完整，请完善该
+脚本，进行逻辑综合（建议大家查看上课 ppt 和上传的《ASIC 设计理论与实践》一书的逻
+辑综合部分）。
+（2）修改约束条件，查看不同时序约束条件下，分析约束条件对逻辑综合结果的影响。
+
+2. 对逻辑综合生成的门级网表，在 testbench 中反标 SDF 文件，采用前端仿真的方式，并
+对门级验证的结果进行分析。反标 sdf 语法如下：
+initial begin
+$sdf_annotate("cpu.sdf", u_cpu);
+end
+
+二、综合所用库的路径
+1.在逻辑综合实验中, 需要下面三个库文件
+
+# 逻辑设计和脚本文件
+set TARGET_LIBRARY_FILES
+"../lib/aci/sc-x/synopsys/typical_lv2c25.db
+../lib/SP013D3_V1p4/syn/SP013D3_V1p2_typ.db";
+
+set SYMBOL_LIBRARY_FILES
+../lib/aci/sc-x/symbols/synopsys/smicl3g.sdb; # Symbol library file
+
+上述库文件的正确的绝对路径如下
+/home/eda/lib/smic/aci/sc-x/synopsys/typical_1v2c25.db
+/home/eda/lib/smic/SP013D3_V1p4/syn/SP013D3_V1p2_typ.db
+/home/eda/lib/smic/aci/sc-x/synopsys/smic13g.sdb
+
+3. 后仿真需要的 smic13g.v 和 SP013D3_V1p2.v 路径为:/home/eda/houfang
+
+附录：
+（1）建立综合目录 syn，如图 2.1 所示，建立命令为：
+mkdir syn
+
+图 2.1 建立工作目录 syn
+
+在 syn 文件夹下建立 ref、rpt、rtl、scripts、unmapped、mapped 等文件夹，如图 2.2 所示。
+
+图 2.2 建立目录
+
+（2）设置工作环境
+首先复制综合要使用的单元库和符号库到 ref 目录里。
+在 工 作 目 录 syn 下 ， 用 vim 编 辑 器 编 写设 置 脚 本 文 件 common_setup.tcl、 dc_setup.tcl
+和.synopsys_dc.setup(注意前面有个点)。在工作目录下启动 Design Compiler(DC)时，会自动
+运行.synopsys_dc.setup 文件，对 DC 的运行环境进行配置，并指定综合所需要的工艺库。参
+考.synopsys_dc.setup 脚本文件如下，请确认单元库的绝对路径和下面脚本中的一致。
+
+#.synopsys_dc.setup
+history keep 290
+alias h history
+alias rc "report_constraint -all_violators" alias rt report _timing
+alias ra report_area
+alias rq report_qor
+alias page_on {set sh_enable_page_mode true}
+alias page_off (set sh_enable_page_mode_false)
+alias fr "remove design -designs”
+source common setup.tcl
+source dc setup.tcl .synopsys_dc.setup 运行时调用文件 common_setup.tcl、dc_setup.tcl，分别如下：
+#common_setup.tcl
+Set ADDITIONAL _SEARCH PATH
+"/home/autumn/ASIC/syn ./unmapped ./rtl ./scripts" ;#Directories containing logical libraries, set TARGET LIBRARY FILES
+"/home/autumn/ASIC/syn/ref/typical_1v2c25.db
+/home/autumn/ASIC/syn/ref/SP013D3V1p2_typ.db";
+set SYMBOL LIBRARY FILES
+#Symbol library fiTe
+"/home/autumn/ASIC/syn/ref/smic13g.sdb";
+
+（3）添加 PAD
+编写 control_pad.v 作为顶层文件，从库文件中选择并实例化合适的 IO 单元。
+
+timescale 1ns/1ns
+module control_pad
+(
+input wire rst_
+input wire clk,
+input wire zero,
+input wire[2:0]opcode, output wire rd, output wire wr, output wire ld_ir, output wire ld_ac, output wire ld_pc, output wire inc_pc, output wire halt, output wire data_e, output wire sel
+);
+wire rd_pad;
+wire wr_pad;
+wire ld_ir_pad;
+wire ld_ac_pad;
+wire ld_pc_pad;
+wire inc_pc_pad;
+wire halt_pad;
+wire data_e_pad;
+wire sel_pad;
+wire[2:0]opcode_pad;
+wire zero_pad;
+wire clk_pad;
+wire rst_pad;
+PI i_rst(.PAD(rst_),.C(rst_pad));
+PI i_clk(.PAD(clk),.C(clk_pad));
+PI i_zero(.PAD(zero),.C(zero_pad));
+PI i_opcode_0(.PAD(opcode[0]),.C(opcode_pad[0]));
+PI i_opcode_1(.PAD(opcode[1]),.C(opcode_pad[1]));
+PI i_opcode_2(.PAD(opcode[2]),.C(opcode_pad[2]));
+PO8 i_rd(.I(rd_pad),.PAD(rd));
+PO8 i_wr(.I(wr_pad),.PAD(wr));
+PO8 i_ld_ir(.I(ld_ir_pad),.PAD(ld_ir));
+Po8 i_ld_ac(.I(ld_ac_pad),.PAD(1d_ac));
+PO8 i_ld_pc(.I(ld_pc_pad),.PAD(1d_pc));
+PO8 i_inc_pc(.I(inc_pc_pad),.PAD(inc_pc));
+PO8 i_halt(.I(halt_pad),.PAD(halt));
+PO8 i_data_e(.I(data_e_pad),.PAD(data_e));
+PO8 i_sel(.I(sel_pad),.PAD(sel));
+control i_control
+(
+.rst_(rst pad)
+.clk(clk_pad), .rd(rd_pad), .wr(wr_pad), .ld_ir(ld_ir_pad), .ld_ac(ld_ac_pad), .ld_pc(ld_pc_pad), .inc_pc(inc_pc_pad), .halt(halt_pad), .data_e(data_e_pad), .sel(sel_pad), .opcode(opcode_pad), .zero(zero_pad)
+);
+endmodule
+
+（4）编写综合脚本
+在 scripts 目录下用 vim 编辑器编写脚本文件 dc_scripts.tcl。在编写脚本文件时注意和要综
+合的设计名称及端口的一致性。参考脚本文件如下。
+
+#dc_scripts.tcl
+read_file -format verilog ./rtl/control.v
+read_file -format verilog ./rtl/control_pad.v
+write -hierarchy -f ddc -out unmapped/control_pad.ddc
+list designs
+list_libs
+set lib_name typical_1v2c25
+current_design control_pad
+link
+write -hierarchy -f ddc -out unmapped/control_pad.ddc
+list designs
+list libs
+#Create clock object and set uncertainty
+create_clock -period 20 [get_ports clk]
+set_clock_uncertainty 0.2 [get_clocks clk]
+#Set constraints on input ports
+suppress_message UID-401
+set_driving_cell -library slib_name -lib_cell AND2X4[remove_from_collection
+[all_inputs][get_ports clk]]
+set_input_delay 0.1 -max -clock clk [remove_from_collection [all_inputs][get_ports clk]]
+#set_input_delay 1.2 -max -clock clock [get_ports Neg_Flag]
+#Set constraints on output ports
+set_output_delay 1 -max -clock clk [all_outputs]
+set_load [expr [load_of slib_name/AND2X4/A]*15][all_outputs]
+set_dont_touch i_rst true
+set_dont_touch i_clk true
+set_dont_touch i_zero true
+set_dont_touch i_opcode_0 true
+set_dont_touch i_opcode_1 true
+set_dont_touch i_opcode_2 true
+set_dont_touch i_sel true
+set_dont_touch i_data_e true
+set_dont_touch i_inc_pc true
+set_dont_touch i_ld_pc true
+set_dont_touch i_ld_ac true
+set_dont_touch i_ld_ir true
+set_dont_touch i_wr true
+set_dont_touch i_rd true
+set_dont_touch i_halt true
+set_dont_touch_network opcode[0]
+set_dont_touch_network opcode[1]
+set_dont_touch_network opcode[2]
+compile_ultra
+report_constraint -all > ./rpt/rpt_consitraints
+report_timing > ./rpt/rpt_timing
+report_area > ./rpt/rpt_area
+report_power > ./rpt/rpt_power
+write -hierarchy -format ddc -output ./mapped/control_pad.ddc
+write -hierarchy -format verilog -output ./mapped/control_pad.v
+write_sdc ./mapped/control_pad.sdc
+write_sdf ./mapped/control_pad.sdf
+list_designs
+list_libs
+
+（5）综合的执行
+在工作目录下使用 dc_shell-64 命令启动 Design Compiler,输入以下命令并回车：
+source ./scripts/dc_scripts.tcl
+该命令运行/scripts/dc_scripts.tcl 文件并对设计进行综合，能实时观察综合结果。综合成
+功后，输出网表、时序约束文件和各种分析报告，其中，网表和时序约束文件保存在./mapped
+目录下，各种分析报告保存在./rpt 目录下。
+在综合过程中，注意查看报告的 ERROR 和 Warning,及时对引起问题的错误进行修改。
+
+（6）综合结果分析
+在目录 rpt 和 mapped 下查看各种输出结果和分析报告，修改./script/dc_script.tcl 中时钟
+约束和面积约束，查看其对综合结果的影响。以下图片分别是时序分析报告、面积分析报告、
+功耗分析报告、综合网表以及时序约束文件。
+
+时序分析报告：
+
+面积分析报告：
+
+功耗分析报告：
+
+综合生成的网表：
+
+综合生成的时序约束文件：
