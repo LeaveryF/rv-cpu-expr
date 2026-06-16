@@ -2,6 +2,9 @@
 # dc_scripts.tcl — Synthesis script for MiniRV CPU
 #===========================================================================
 
+# Ensure output directories exist
+exec mkdir -p ./mapped ./rpt ./unmapped
+
 puts "============================================"
 puts "  MiniRV CPU Logic Synthesis"
 puts "============================================"

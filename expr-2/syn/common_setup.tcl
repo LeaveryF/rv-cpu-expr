@@ -19,12 +19,13 @@ set TARGET_LIBRARY_FILES "\
 set SYMBOL_LIBRARY_FILES \
     "/home/eda/lib/smic/aci/sc-x/synopsys/smic13g.sdb"
 
-# Additional link libraries (same as target for synthesis)
-set LINK_LIBRARY_FILES $TARGET_LIBRARY_FILES
-
-# Optional: Milkyway reference libraries (for physical-aware synthesis)
-# set MW_REFERENCE_LIB_DIRS ""
-# set MW_DESIGN_LIB ""
+# ===========================================================================
+# DC application variables — these are the ones DC actually reads
+# ===========================================================================
+set search_path [concat ./rtl ./scripts ./unmapped $search_path]
+set target_library $TARGET_LIBRARY_FILES
+set link_library "* $TARGET_LIBRARY_FILES"
+set symbol_library $SYMBOL_LIBRARY_FILES
 
 # Tcl procedure to print environment info
 proc print_setup_info {} {
