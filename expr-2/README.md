@@ -23,6 +23,7 @@ expr-2/
     │   ├── dc_scripts_fast.tcl#   收紧 200MHz (5ns)
     │   └── dc_scripts_slow.tcl#   放宽 25MHz (40ns)
     ├── unmapped/              # ── 中间产物：elaborate 后的 .ddc
+    ├── work/                  # ── DC analyze 中间文件 (.mr, .pvl, .syn)
     ├── mapped/                # ── 最终产物（见下）──
     └── rpt/                   # ── 综合报告（见下）──
 ```
@@ -97,19 +98,23 @@ DC 综合运行后，除原始的 `rtl/`、`scripts/` 和配置 `.tcl` 外，会
 |:---|:---|
 | `cpu_pad_unmapped.ddc` | elaborate 后、compile 前的未映射设计，用于中断恢复 |
 
-### DC 工作文件 — `syn/` 根目录
+### DC 工作文件 — `syn/work/` 目录
 
-这些是 DC 运行时自动产生的工作文件，**不需要手动管理**，通常加入 `.gitignore`：
+这些是 DC 在 `analyze` 阶段自动产生的中间文件，通过脚本中 `define_design_lib` 统一放入 `work/`，**不需要手动管理**：
+
+| 文件 | 说明 |
+|:---|:---|
+| `*.mr` | 每个模块的 Master Register 文件（DC 内部中间格式） |
+| `*-verilog.pvl` | 已解析的 RTL 内部表示 |
+| `*-verilog.syn` | 综合后的设计内部表示 |
+
+### DC 日志文件 — `syn/` 根目录
 
 | 文件 | 说明 |
 |:---|:---|
 | `command.log` | DC 会话中所有命令和输出的完整记录 |
 | `filenames.log` | DC 访问过的所有文件列表（含读写状态） |
 | `default.svf` | **SVF (Setup Verification File)** — 记录综合中的优化操作，Formality 形式验证时需要它来比对综合前后逻辑等价性 |
-| `alib-52/` | DC 内部库缓存目录 |
-| `*.mr` | 每个模块的 Master Register 文件（DC 内部中间格式） |
-| `*-verilog.pvl` | 已解析的 RTL 内部表示 |
-| `*-verilog.syn` | 综合后的设计内部表示 |
 
 ## 门级仿真 (后仿)
 

@@ -7,14 +7,18 @@
 #    dc_shell-64> source ./scripts/dc_scripts_fast.tcl
 #===========================================================================
 
+exec mkdir -p ./mapped ./rpt ./unmapped ./work
+define_design_lib WORK -path ./work
+set_app_var alib_library_analysis_path ./work
+
 puts "============================================"
 puts "  MiniRV CPU Logic Synthesis (FAST: 200MHz)"
 puts "============================================"
 
-# Read & elaborate (same as default)
+# Read & elaborate
 set sv_files [glob ./rtl/*.sv]
-analyze -format sverilog $sv_files
-elaborate cpu_pad
+analyze -work WORK -format sverilog $sv_files
+elaborate cpu_pad -work WORK
 current_design cpu_pad
 link
 write -hierarchy -format ddc -output ./unmapped/cpu_pad_unmapped_fast.ddc

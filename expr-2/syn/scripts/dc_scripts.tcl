@@ -3,7 +3,11 @@
 #===========================================================================
 
 # Ensure output directories exist
-exec mkdir -p ./mapped ./rpt ./unmapped
+exec mkdir -p ./mapped ./rpt ./unmapped ./work
+
+# Direct DC intermediate files into work/ instead of cluttering .
+define_design_lib WORK -path ./work
+set_app_var alib_library_analysis_path ./work
 
 puts "============================================"
 puts "  MiniRV CPU Logic Synthesis"
@@ -17,10 +21,10 @@ puts "\[INFO\] Reading SystemVerilog files:"
 foreach f $sv_files {
     puts "    $f"
 }
-analyze -format sverilog $sv_files
+analyze -work WORK -format sverilog $sv_files
 
 puts "\[INFO\] Elaborating top module: cpu_pad"
-elaborate cpu_pad
+elaborate cpu_pad -work WORK
 
 # Initial check
 current_design cpu_pad
