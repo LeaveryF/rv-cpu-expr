@@ -19,16 +19,14 @@ source -echo ../scripts/common_placement_settings_icc.tcl
 check_physical_design -stage pre_clock_opt
 check_clock_tree
 
-# Remove ideal network on clock before CTS
 remove_ideal_network [get_ports clk_pad]
 
-# CTS settings
 set_clock_tree_options -target_early_delay 0.9
 set_clock_tree_options -target_skew 0.2
 report_clock_tree -settings
 
-# Clock tree synthesis
-compile_clock_tree
+# CTS + optimization
+clock_opt -no_clock_route -only_cts
 update_clock_latency
 report_clock_tree
 report_clock_timing -type skew

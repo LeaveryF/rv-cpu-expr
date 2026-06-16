@@ -1,5 +1,5 @@
 #===========================================================================
-# place.tcl — ICC2 Placement (basic, no timing opt — CTS/route handle that)
+# place.tcl — ICC2 Placement (basic)
 #===========================================================================
 
 source ../rm_setups/lcrm_setup.tcl
@@ -18,13 +18,14 @@ source -echo ../scripts/common_placement_settings_icc.tcl
 
 check_physical_design -stage pre_place_opt
 
-# Set clock as ideal net (CTS will handle real clock later)
 set_ideal_network [all_fanout -flat -clock_tree]
 
-# Basic placement — no timing optimization yet (CTS first!)
-create_fp_placement -congestion -timing -no_hierarchy_gravity
+# Try coarse placement only (no refine which needs congestion map)
+create_fp_placement -timing -no_hierarchy_gravity
 legalize_placement
-refine_placement -congestion_effort high
+
+# Report placement results
+report_design_physical -utilization
 
 create_qor_snapshot -name placed
 query_qor_snapshot -name placed

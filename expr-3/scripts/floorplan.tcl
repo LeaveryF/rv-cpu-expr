@@ -36,7 +36,7 @@ puts "\[INFO\] Corner and PG pad cells created."
 create_floorplan \
     -control_type aspect_ratio \
     -core_aspect_ratio 1 \
-    -core_utilization 0.7 \
+    -core_utilization 0.5 \
     -left_io2core 30 \
     -bottom_io2core 30 \
     -right_io2core 30 \
