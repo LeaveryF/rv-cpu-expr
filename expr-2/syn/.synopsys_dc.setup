@@ -1,0 +1,16 @@
+#===========================================================================
+# .synopsys_dc.setup — DC auto-load configuration
+#===========================================================================
+history keep 290
+alias h history
+alias rc "report_constraint -all_violators"
+alias rt report_timing
+alias ra report_area
+alias rq report_qor
+alias page_on {set sh_enable_page_mode true}
+alias page_off {set sh_enable_page_mode false}
+alias fr "remove_design -designs"
+
+# Source common and DC-specific setup
+source common_setup.tcl
+source dc_setup.tcl
