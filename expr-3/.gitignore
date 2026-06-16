@@ -1,19 +1,45 @@
 # ICC2 Milkyway library
 cpu_pad.mw/
 
-# ICC2 working files
-*.log
+# ICC2 working files (in run/ and root)
 command.log
+filenames.log
+icc_output.txt
+*.attr
+net.acts
 default.svf
 alib-52/
 
-# Synthesis outputs (large, can be regenerated)
+# ICC2 checkpoint / temp dirs
+cpd_*/
+ctr_*/
+ctr_report.*
+snapshot/
+
+# ICC2 auto-generated scripts
+design_planning_blockages.tcl
+set_pad_attributes_on_cell_floorplan.tcl
+
+# Crash traces
+crte_*.txt
+Synopsys_stack_trace_*.txt
+
+# PT logs
+parasitics_command.log
+pt_shell_command.log
+
+# VCS generated
+csrc/
+simv
+simv.daidir/
+*.vcd
+ucli.key
+
+# Generated output (regeneratable)
 output/
 design_data/
+logs/
 
-# VCS simulation artifacts
-simv*
-csrc/
-vc_hdrs.h
-*.vcd
-*.daidir/
+# Editor
+*~
+.*.swp
