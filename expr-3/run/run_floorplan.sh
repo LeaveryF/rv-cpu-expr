@@ -1,6 +1,6 @@
 #!/bin/bash
-# Run floorplan in ICC2
-if [ -f ../logs/floorplan.log ]; then
-    rm ../logs/floorplan.log
-fi
-icc_shell -f ../scripts/floorplan.tcl 2>&1 | tee -i ../logs/floorplan.log
+#=== run_floorplan.sh ===
+set -e
+cd "$(dirname "$0")"
+icc_shell -f ../scripts/floorplan.tcl 2>&1 | tee ../logs/floorplan.log
+echo "=> floorplan done, log: logs/floorplan.log"

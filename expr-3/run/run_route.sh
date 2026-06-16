@@ -1,6 +1,6 @@
 #!/bin/bash
-# Run routing in ICC2
-if [ -f ../logs/route.log ]; then
-    rm ../logs/route.log
-fi
-icc_shell -f ../scripts/route.tcl 2>&1 | tee -i ../logs/route.log
+#=== run_route.sh ===
+set -e
+cd "$(dirname "$0")"
+icc_shell -f ../scripts/route.tcl 2>&1 | tee ../logs/route.log
+echo "=> route done, log: logs/route.log"

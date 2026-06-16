@@ -1,6 +1,6 @@
 #!/bin/bash
-# Run placement in ICC2
-if [ -f ../logs/place.log ]; then
-    rm ../logs/place.log
-fi
-icc_shell -f ../scripts/place.tcl 2>&1 | tee -i ../logs/place.log
+#=== run_place.sh ===
+set -e
+cd "$(dirname "$0")"
+icc_shell -f ../scripts/place.tcl 2>&1 | tee ../logs/place.log
+echo "=> place done, log: logs/place.log"

@@ -1,6 +1,15 @@
 #!/bin/bash
-# Run design_setup in ICC2
-if [ -f ../logs/design_setup.log ]; then
-    rm ../logs/design_setup.log
-fi
-icc_shell -f ../scripts/design_setup.tcl 2>&1 | tee -i ../logs/design_setup.log
+#=== run_design_setup.sh ===
+set -e
+mkdir -p ../logs ../design_data
+cd "$(dirname "$0")"
+rm -rf ../cpu_pad.mw
+
+cp ../design_data/cpu_pad_netlist.v . 2>/dev/null || {
+    echo "Copying netlist from expr-2..."
+    cp ../../expr-2/syn/mapped/cpu_pad_netlist.v ../design_data/
+    cp ../../expr-2/syn/mapped/cpu_pad.sdc ../design_data/
+}
+
+icc_shell -f ../scripts/design_setup.tcl 2>&1 | tee ../logs/design_setup.log
+echo "=> design_setup done, log: logs/design_setup.log"
