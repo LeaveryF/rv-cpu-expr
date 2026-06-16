@@ -59,34 +59,24 @@ set_ignored_layers -max_routing_layer METAL6
 report_ignored_layers
 
 #---------------------------------------------------------------------
-# 5. Power network: automated synthesis
+# 5. Power/ground connections
 #---------------------------------------------------------------------
 save_mw_cel -as floorplan_prepns
 
-# Use automated power rail synthesis (avoids geometry bugs with manual ring/mesh)
-synthesize_fp_rail -power_budget 800 -voltage_supply 1.32 \
-    -output_directory ../output/powerplan.dir \
-    -nets {VDD VSS} -synthesize_power_plan
-
-puts "\[INFO\] Power rails synthesized."
-
-#---------------------------------------------------------------------
-# 6. PG connections (after ring/mesh creation)
-#---------------------------------------------------------------------
 derive_pg_connection -create_net
 derive_pg_connection -power_net VDD -power_pin VDD -ground_net VSS -ground_pin VSS
-derive_pg_connection -power_net VDD -ground_net VSS -tie
+derive_pg_connection -power_net VDD -ground_net VSS -create_ports top -tie
 
 save_mw_cel -as floorplanafterpn
 
 #---------------------------------------------------------------------
-# 7. Route standard cell rails (METAL3-METAL8)
+# 6. Route standard cell rails (power routing for stdcells)
 #---------------------------------------------------------------------
 set_preroute_drc_strategy -min_layer METAL3 -max_layer METAL8
 preroute_standard_cells -nets "VDD VSS" -remove_floating_pieces -do_not_route_over_macros
 
 #---------------------------------------------------------------------
-# 8. Initial placement + global route for congestion check
+# 7. Initial placement for congestion check
 #---------------------------------------------------------------------
 create_fp_placement -congestion -timing -no_hierarchy_gravity
 route_zrt_global -congestion_map_only true -exploration true
