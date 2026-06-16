@@ -1,5 +1,5 @@
 #===========================================================================
-# place.tcl — ICC2 Placement
+# place.tcl — ICC2 Placement (legacy flow, avoiding place_opt bug)
 #===========================================================================
 
 source ../rm_setups/lcrm_setup.tcl
@@ -14,27 +14,37 @@ copy_mw_cel -from floorplaned -to place
 open_mw_cel place
 
 #---------------------------------------------------------------------
-# 1. Optimization and placement settings
+# 1. Settings
 #---------------------------------------------------------------------
 source -echo ../scripts/common_optimization_settings_icc.tcl
 source -echo ../scripts/common_placement_settings_icc.tcl
 
 #---------------------------------------------------------------------
-# 2. Pre-placement checks
+# 2. Pre-placement check
 #---------------------------------------------------------------------
 check_physical_design -stage pre_place_opt
 
 #---------------------------------------------------------------------
-# 3. Set ideal network for clock (will be removed in CTS)
+# 3. Set ideal network for clock
 #---------------------------------------------------------------------
 set_ideal_network [all_fanout -flat -clock_tree]
 
 #---------------------------------------------------------------------
-# 4. Placement + optimization
+# 4. Placement using legacy flow (avoid place_opt tool bug)
 #---------------------------------------------------------------------
-place_opt -area_recovery -congestion
+# Coarse placement
+create_fp_placement -congestion -timing -no_hierarchy_gravity
+
+# Legalize
+legalize_placement
+
+# Optimization after placement
 psynopt -area_recovery -congestion
+
+# Refine placement
 refine_placement -congestion_effort high
+
+# Final optimization
 psynopt -area_recovery -congestion
 
 #---------------------------------------------------------------------
