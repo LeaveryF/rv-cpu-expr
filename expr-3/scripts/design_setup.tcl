@@ -82,8 +82,9 @@ report_constraint -all
 report_timing
 set_zero_interconnect_delay_mode false
 
-# Remove ideal network on clock/reset after initial check
-remove_ideal_network [get_ports "clk_pad rst_n_pad"]
+# Remove ideal network on clock/reset after initial check (one at a time)
+remove_ideal_network [get_ports clk_pad]
+remove_ideal_network [get_ports rst_n_pad]
 
 #---------------------------------------------------------------------
 # 8. Save initial cell
