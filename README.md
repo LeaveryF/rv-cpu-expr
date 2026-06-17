@@ -1,46 +1,54 @@
-# RISC-V CPU 课程实验
+# RISC-V CPU 数字 IC 设计实验
 
-基于 SystemVerilog 的单周期 RISC-V 处理器前端设计，从 ALU 出发逐步实现支持 MiniRV 指令集（37 条指令）的完整 CPU。
+基于 SystemVerilog 的单周期 RISC-V 处理器设计，涵盖前端 RTL → 逻辑综合 → 版图物理设计的完整流程。
 
 ## 实验列表
 
 | 序号 | 实验名称 | 目录 | 说明 |
 |:---:|:---|:---|:---|
-| 1 | ALU 设计 | [alu/](alu/) | 32 位 ALU，4 种运算 + N/Z/C/V 标志位 |
-| 2 | 数据通路 | [datapath/](datapath/) | PC、RegFile、ImmGen、IM、DM 等 8 个核心部件 |
-| 3 | 存储器扩展 | [MemExt/](MemExt/) | 字扩展+位扩展，256×8bit → 1024×32bit |
-| 4 | 控制器与 CPU 集成 | [rv32icpu/](rv32icpu/) | 两级译码控制器，13 模块集成，7 指令单周期 CPU |
-| 5 | MiniRV CPU 验证 | [MiniRV/](MiniRV/) | 升级至 37 指令，Trace 差分测试全通过 |
+| 一 | 前端 RTL 设计 | [alu/](alu/) [datapath/](datapath/) [MemExt/](MemExt/) [rv32icpu/](rv32icpu/) [MiniRV/](MiniRV/) | 5 个子实验：ALU → 数据通路 → 存储器扩展 → 控制器 → MiniRV CPU (37 指令) |
+| 二 | 逻辑综合 | [expr-2/](expr-2/) | DC 综合 + PAD 设计 + 时序/面积/功耗分析 |
+| 三 | 版图设计 | [expr-3/](expr-3/) | ICC2 布局布线 + PT SDF + VCS 门级后仿真 |
 
 ## 项目结构
 
 ```
 .
-├── alu/            # 实验一：ALU
-├── datapath/       # 实验二：数据通路
-├── MemExt/         # 实验三：存储器扩展
-├── rv32icpu/       # 实验四：控制器+CPU集成
-├── MiniRV/         # 实验五：MiniRV CPU验证
+├── alu/            # 前端子实验：ALU
+├── datapath/       # 前端子实验：数据通路
+├── MemExt/         # 前端子实验：存储器扩展
+├── rv32icpu/       # 前端子实验：控制器+CPU集成
+├── MiniRV/         # 前端子实验：MiniRV CPU验证
 ├── cdp-tests/      # Trace 差分测试框架
-├── docs/           # 实验报告
-│   ├── alu.md
-│   ├── datapath.md
-│   ├── memext.md
-│   ├── controller.md
-│   ├── verification.md
-│   └── frontend.md      # 前端设计综合报告
+├── expr-2/         # 实验二：逻辑综合 (DC)
+│   ├── syn/        #   综合脚本、RTL、输出
+│   └── docs/       #   实验报告
+├── expr-3/         # 实验三：版图设计 (ICC2+PT+VCS)
+│   ├── run/        #   运行脚本 + MW 库
+│   ├── scripts/    #   ICC2/PT 脚本
+│   ├── output/     #   版图后网表 + SPEF + SDF
+│   └── docs/       #   实验报告
+├── docs/           # 综合报告
+│   ├── frontend.md         # 前端设计综合报告
+│   ├── eda-expr.md         # 三大实验总报告
+│   └── alu.md ...          # 各子实验报告
 └── tasks/          # 实验指导书
 ```
 
-每个实验目录内包含 Vivado 工程（`.xpr`），源码位于 `*/rv32icpu.srcs/sources_1/new/`（实验五为 `MiniRV.srcs/sources_1/new/`）。
-
 ## 实验环境
 
-- **设计语言**：SystemVerilog
-- **开发工具**：Xilinx Vivado 2024.2
-- **仿真工具**：Vivado Simulator (XSim)、Verilator 5.020
-- **测试框架**：cdp-tests 差分测试
-- **目标器件**：xc7k325tffg900-2
+| 工具 | 用途 | 版本 |
+|:---|:---|:---|
+| Xilinx Vivado | 前端 RTL 仿真 | 2024.2 |
+| Verilator | Trace 差分测试 | 5.020 |
+| Synopsys Design Compiler | 逻辑综合 | R-2020.09-SP4 |
+| Synopsys ICC2 | 布局布线 (版图设计) | T-2022.03 |
+| Synopsys PrimeTime | 时序签核 / SDF 生成 | T-2022.03 |
+| Synopsys VCS | 门级后仿真 | T-2022.06 |
+
+- **设计语言**：SystemVerilog / Verilog
+- **工艺**：SMIC 0.13µm, 1P8M, typical 1.2V 25°C
+- **目标器件**：xc7k325tffg900-2 (前端)
 
 ## MiniRV 指令集
 
@@ -58,17 +66,28 @@
 
 ## 测试
 
-实验五使用 cdp-tests 差分测试框架进行验证：
-
+**前端差分测试**（cdp-tests）：
 ```bash
 cd cdp-tests
 make TEST=add       # 编译并运行单个测试
 make run TEST=add   # 仅运行（已编译）
 ```
 
-所有 37 个测试均通过：
+所有 37 个 MiniRV 指令测试均通过：
+
 ```
 ✅ add addi and andi auipc beq bge bgeu blt bltu bne
 ✅ jal jalr lb lbu lh lhu lui lw or ori sb sh
 ✅ sll slli slt slti sltiu sltu sra srai srl srli sub sw xor xori
+```
+
+**逻辑综合**（DC）：
+```bash
+cd expr-2/syn && dc_shell -f ./scripts/dc_scripts.tcl
+```
+
+**版图设计**（ICC2）：
+```bash
+cd expr-3/run && ./run_all.sh     # 一键全流程
+./view_layout.sh route            # GUI 查看版图
 ```
