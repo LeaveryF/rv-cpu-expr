@@ -23,7 +23,9 @@ expr-3/
 │   └── sdf_gen.tcl            #   6. PT 生成 SDF (从 SPEF)
 ├── design_data/               # 输入: cpu_pad_netlist.v + cpu_pad.sdc
 ├── run/                       # 运行脚本目录
+│   ├── run_all.sh             #   一键运行全流程
 │   ├── run_*.sh               #   各步骤的独立运行脚本
+│   ├── view_layout.sh         #   ICC2 GUI 查看版图
 │   └── tb_cpu_pad_post.v      #   后仿真 testbench
 ├── logs/                      # 日志文件
 └── output/                    # 输出:
@@ -119,31 +121,39 @@ vcs -full64 \
     +maxdelays -R
 ```
 
-### 5. 版图图片获取
+### 5. 查看版图
 
-在远程服务器上，使用 ICC2 GUI 打开 MW 库获取版图截图：
+使用 `view_layout.sh` 脚本一键打开 ICC2 GUI：
 
 ```bash
-# 需要 X11 forwarding
+# 需要 X11 forwarding（本地需有图形界面）
 ssh -X yan12@10.112.86.27
-cd ~/proj/rv-cpu-expr/expr-3/run
-icc_shell -gui
+cd ~/proj/rv-cpu-expr && git pull
+cd expr-3/run
 
-# 在 ICC2 GUI 中:
-# open_mw_lib cpu_pad.mw
-# open_mw_cel route          # 布线后版图
-# open_mw_cel floorplaned    # 布图规划后
-# open_mw_cel placed         # 布局后
-# open_mw_cel cts            # CTS 后
+# 查看各阶段版图
+./view_layout.sh route           # 布线后（最终版图）
+./view_layout.sh cts             # 时钟树综合后
+./view_layout.sh placed          # 布局后
+./view_layout.sh floorplaned     # 布图规划完成
+./view_layout.sh floorplanafterpn # 电源连接后
+./view_layout.sh floorplan_prepns # 电源规划前
+./view_layout.sh data_setup      # 初始导入
 ```
 
-各阶段截图内容：
-- **floorplanprepns** — 未生成 core ring/mesh 前的图形
-- **floorplanafterpn** — 电源线和电源 pad 连接后
-- **floorplaned** — 标准填充单元 pad 填充后
-- **placed** — 布局后
-- **cts** — 时钟树综合后
-- **route** — 布线后
+GUI 操作：**View → Layout Browser**，滚轮缩放、中键拖拽平移、Ctrl+F 查找。
+
+各阶段 CEL 内容：
+
+| CEL | 可观察内容 |
+|:---|:---|
+| `data_setup` | 刚读入网表，无物理信息 |
+| `floorplan_prepns` | PAD 环 + core 边界，无电源 |
+| `floorplanafterpn` | 电源地连接建立 |
+| `floorplaned` | pad filler 填充后，电源轨完成 |
+| `placed` | 标准单元放置后（可看到 cell 分布和密度） |
+| `cts` | 时钟树 buffer chain 可见 |
+| `route` | **最终版图**——全部金属层连线可见 |
 
 ## 工作记录
 
