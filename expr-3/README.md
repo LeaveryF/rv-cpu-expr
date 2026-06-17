@@ -131,29 +131,29 @@ ssh -X yan12@10.112.86.27
 cd ~/proj/rv-cpu-expr && git pull
 cd expr-3/run
 
-# 查看各阶段版图
-./view_layout.sh route           # 布线后（最终版图）
-./view_layout.sh cts             # 时钟树综合后
-./view_layout.sh placed          # 布局后
-./view_layout.sh floorplaned     # 布图规划完成
-./view_layout.sh floorplanafterpn # 电源连接后
-./view_layout.sh floorplan_prepns # 电源规划前
-./view_layout.sh data_setup      # 初始导入
+# 按物理设计顺序查看各阶段版图
+./view_layout.sh data_setup         # 1. 初始导入
+./view_layout.sh floorplan_prepns   # 2. 电源规划前
+./view_layout.sh floorplanafterpn   # 3. 电源连接后
+./view_layout.sh floorplaned        # 4. 布图规划完成
+./view_layout.sh placed             # 5. 布局后
+./view_layout.sh cts                # 6. 时钟树综合后
+./view_layout.sh route              # 7. 布线后（最终版图）
 ```
 
 GUI 操作：**View → Layout Browser**，滚轮缩放、中键拖拽平移、Ctrl+F 查找。
 
-各阶段 CEL 内容：
+各阶段 CEL 内容（按物理设计流程排序）：
 
-| CEL | 可观察内容 |
-|:---|:---|
-| `data_setup` | 刚读入网表，无物理信息 |
-| `floorplan_prepns` | PAD 环 + core 边界，无电源 |
-| `floorplanafterpn` | 电源地连接建立 |
-| `floorplaned` | pad filler 填充后，电源轨完成 |
-| `placed` | 标准单元放置后（可看到 cell 分布和密度） |
-| `cts` | 时钟树 buffer chain 可见 |
-| `route` | **最终版图**——全部金属层连线可见 |
+| 顺序 | CEL | 可观察内容 |
+|:---:|:---|:---|
+| 1 | `data_setup` | 刚读入网表，无物理信息 |
+| 2 | `floorplan_prepns` | PAD 环 + core 边界，无电源 |
+| 3 | `floorplanafterpn` | 电源地连接建立 |
+| 4 | `floorplaned` | pad filler 填充后，电源轨完成 |
+| 5 | `placed` | 标准单元放置后（可看到 cell 分布和密度） |
+| 6 | `cts` | 时钟树 buffer chain 可见 |
+| 7 | `route` | **最终版图**——全部金属层连线可见 |
 
 ## 工作记录
 
