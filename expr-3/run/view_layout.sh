@@ -10,17 +10,24 @@ cd "$(dirname "$0")"
 
 STAGE="${1:-route}"
 
+MW_DIR="$(cd "$(dirname "$0")" && pwd)"
+MW_LIB="${MW_DIR}/cpu_pad.mw"
+
+if [ ! -d "$MW_LIB" ]; then
+    echo "ERROR: MW library not found at $MW_LIB"
+    echo "Please run the flow first: cd $(dirname "$0") && ./run_all.sh"
+    exit 1
+fi
+
 cat > /tmp/_icc_view_${STAGE}.tcl << EOF
-source ../rm_setups/lcrm_setup.tcl
-source -echo ../rm_setups/icc_setup.tcl
-open_mw_lib ${PWD}/../cpu_pad.mw
+source ${MW_DIR}/../rm_setups/lcrm_setup.tcl
+source -echo ${MW_DIR}/../rm_setups/icc_setup.tcl
+open_mw_lib ${MW_LIB}
 open_mw_cel ${STAGE}
 puts "\[INFO\] Opened cell: ${STAGE}"
-puts "\[INFO\] Use View > Layout to see the layout"
-puts "\[INFO\] Use Ctrl+D or 'exit' to close"
+puts "\[INFO\] Use View > Layout Browser to browse the layout"
 EOF
 
 echo "Opening ICC2 GUI for stage: ${STAGE}"
-echo "Tip: In the GUI, use View > Layout Browser to see the layout"
-echo "     Use mousewheel to zoom, middle-click drag to pan"
+echo "MW library: ${MW_LIB}"
 icc_shell -gui -f /tmp/_icc_view_${STAGE}.tcl
