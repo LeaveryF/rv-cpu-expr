@@ -114,6 +114,20 @@ cd expr-3/run && ./run_design_setup.sh
 
 **解决**：跳过手动的 power ring/mesh 编译，改用简单的 `preroute_standard_cells` 电源轨方式。234 个 PAD 导致 core 几何形状异常，触发了工具 bug。
 
+### 结果
+
+电源规划前
+
+![alt text](image.png)
+
+电源连接后
+
+![alt text](image-1.png)
+
+布图规划完成
+
+![alt text](image-2.png)
+
 ## 4.4 布局 (`place.tcl`)
 
 ### 设计内容
@@ -137,6 +151,10 @@ legalize_placement
 
 **解决**：Placement 阶段不做时序优化。CTS 构建真实时钟树后，route 阶段再做时序修复。
 
+### 结果
+
+![alt text](image-3.png)
+
 ## 4.5 时钟树综合 (`cts.tcl`)
 
 ```tcl
@@ -147,6 +165,10 @@ route_zrt_group -all_clock_nets
 ```
 
 设置目标 skew < 0.2ns，插入时钟 buffer 平衡 1,093 个时钟负载。
+
+### 结果
+
+![alt text](image-4.png)
 
 ## 4.6 布线 (`route.tcl`)
 
@@ -161,6 +183,12 @@ route_zrt_group (时钟网) → route_opt -initial_route_only (信号线) → ve
 **问题 5**：`route_opt -skip_initial_route -xtalk_reduction -power`（post-route 全优化）在 WNS=14ns 时跑了 11+ 分钟仍未收敛。ICC2 试图关闭巨大的时序违例，每次迭代改善极小（~0.05ns/次）。
 
 **解决**：简化为只做 initial route + DRC 修复，跳过耗时且无法收敛的 post-route timing optimization。完整时序签核应在 PT 中完成。
+
+### 结果
+
+![alt text](image-5.png)
+
+![alt text](image-6.png)
 
 ### 输出文件
 
