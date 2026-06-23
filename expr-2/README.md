@@ -2,6 +2,109 @@
 
 对 MiniRV CPU 前端 RTL 进行逻辑综合（Design Compiler），添加 IO PAD，生成门级网表、时序/面积/功耗报告和 SDF 文件。
 
+## 逻辑综合核心概念
+
+### 什么是逻辑综合
+
+逻辑综合是将 **RTL 代码（硬件描述语言）** 自动转换为 **门级网表（标准单元实例+连线）** 的过程。综合器（DC）做三件事：
+
+1. **翻译（Translation）**：将 RTL 转为与工艺无关的布尔逻辑表达式（GTECH 格式）
+2. **优化（Optimization）**：化简逻辑、消除冗余、合并等价项
+3. **映射（Mapping）**：从工艺库中选择具体的标准单元（AND2X4、DFFRXL 等），形成门级网表
+
+### 关键概念
+
+#### 1. 标准单元库（Standard Cell Library）
+
+工艺厂商提供的预设计单元集合，包含：
+
+| 内容 | 说明 |
+|:---|:---|
+| `.db` 文件 | 单元的时序、功耗、面积信息（DC 读这个） |
+| `.v` 模型 | 单元的 Verilog 行为模型（仿真用） |
+| 单元类型 | 组合逻辑（AND/OR/INV/MUX...）+ 时序逻辑（DFF/DLAT...） |
+| PVT 条件 | Process (工艺角)、Voltage (电压)、Temperature (温度) |
+
+常用 PVT corners：`typical_1v2c25`（典型值）、`slow_1v08c125`（最慢，建立时间检查）、`fast_1v32cm40`（最快，保持时间检查）。
+
+#### 2. 时序约束（Timing Constraints）
+
+DC 根据约束决定何时需要"更大更快"的单元。核心约束：
+
+| 约束 | 含义 | 本实验的设置 |
+|:---|:---|:---|
+| `create_clock` | 定义时钟频率 | 20ns (50MHz)，端口 `clk_pad` |
+| `set_clock_uncertainty` | 时钟抖动+偏差余量 | 0.2ns |
+| `set_input_delay` | 芯片外的前级延迟 | 0.1ns (max) |
+| `set_output_delay` | 芯片外的后级路径 | 1.0ns (max) |
+| `set_driving_cell` | 输入端口的前级驱动能力 | AND2X4（最小驱动） |
+| `set_load` | 输出端口的负载电容 | 15×AND2X4 输入电容 |
+
+**关键公式**：时钟周期 ≥ 时钟 uncertainty + 输入 delay + 最长组合路径延迟 + 输出 delay + 建立时间
+
+#### 3. Setup / Hold 时序检查
+
+| 检查 | 含义 | 违例后果 | 通常检查的 corner |
+|:---|:---|:---|:---|
+| **Setup（建立时间）** | 数据必须在时钟沿**之前**稳定 | 频率上不去 | slow corner (max delay) |
+| **Hold（保持时间）** | 数据必须在时钟沿**之后**保持 | 芯片功能错误 | fast corner (min delay) |
+
+#### 4. Slack = 时序余量
+
+```
+Slack = Data Required Time - Data Arrival Time
+```
+
+- **Slack > 0**：满足时序，有余量
+- **Slack = 0**：刚好满足
+- **Slack < 0**：时序违例！`Worst Negative Slack (WNS)` = 最差的负 slack
+
+综合报告中最先看的就是 **Slack** 是否 ≥ 0。
+
+#### 5. Compile 策略
+
+| 命令 | 特点 | 适用场景 |
+|:---|:---|:---|
+| `compile` | 基础编译 | 老版本 DC |
+| `compile_ultra` | 顶级优化（时序+面积+功耗） | 本实验使用，现代标准 |
+| `compile_ultra -retime` | 含寄存器重定时 | 流水线设计 |
+| `compile_ultra -spg` | 含扫描链优化 | DFT 设计 |
+
+#### 6. PAD（IO Pad）
+
+芯片内部逻辑与外部引脚的接口单元：
+- **PI**：输入 PAD → ESD 保护 + 电平转换
+- **PO8**：输出 PAD (8mA 驱动) → 驱动片外负载
+- **PCORNER**：Corner cell → 保证 PAD 环的物理连续性
+- **PVDD1/PVSS1**：Core 电源 PAD
+- **PVDD2/PVSS2**：IO 电源 PAD
+
+综合时 PAD 必须设为 **`dont_touch`**，因为它们是预先设计的硬核，综合器不能改动。
+
+#### 7. 面积与功耗 Trade-off
+
+DC 根据时序约束在面积和速度之间权衡：
+- **约束紧**（高频）→ 用大驱动、低延迟的单元 → 面积大、功耗高
+- **约束松**（低频）→ 用小面积、慢速单元 → 面积小、功耗低
+
+这是数字 IC 设计的核心 trade-off：**频率 ↔ 面积 ↔ 功耗**。
+
+### 综合流程总结
+
+```
+┌──────────┐    ┌───────────┐    ┌────────────┐    ┌──────────┐
+│ RTL 读入 │ → │ 约束设置   │ → │ compile_ultra│ → │ 写输出    │
+│ analyze  │    │ create_clock│    │ (翻译+优化   │    │ 网表.v    │
+│ elaborate│    │ set_input_ │    │  +映射)     │    │ .sdf .sdc │
+└──────────┘    │ set_output_│    └────────────┘    └──────────┘
+                │ set_load   │         ↓
+                └───────────┘    ┌──────────┐
+                                 │ 分析报告  │
+                                 │ 时序/面积 │
+                                 │ /功耗/QoR │
+                                 └──────────┘
+```
+
 ## 目录结构
 
 ```
