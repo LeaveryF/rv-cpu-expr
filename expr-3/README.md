@@ -2,6 +2,151 @@
 
 对 MiniRV CPU (`cpu_pad`) 进行 ICC2 布局布线，PT 时序签核，VCS 后仿真。
 
+## 版图设计核心概念
+
+### 什么是版图设计
+
+版图设计（Physical Design）是将门级网表转换为芯片制造所需物理版图的过程。输入是综合后的门级网表和约束，输出是 GDSII 版图文件。本实验完成到布线+寄生提取阶段，是 GDSII 前的重要步骤。
+
+### 物理设计五阶段流程
+
+```
+ data_setup ──→ floorplan ──→ place ──→ cts ──→ route
+   (数据准备)    (布图规划)    (布局)    (时钟树)   (布线)
+```
+
+与前端 RTL 设计的区别：前端关心**功能正确性**，后端关心**物理可实现性**——门放在哪里、线怎么连、时钟怎么分布。
+
+### 关键概念
+
+#### 1. Milkyway 数据库（MW Library）
+
+ICC2 使用 Synopsys 私有的 Milkyway 格式存储设计数据。每个阶段保存为一个 CEL（cell view），类似于版本控制的 commit，可以回溯：
+
+```
+cpu_pad.mw/
+├── data_setup     ← 初始导入
+├── floorplaned    ← 布图规划后
+├── placed         ← 布局后
+├── cts            ← CTS 后
+└── route          ← 布线后
+```
+
+CEL 包含：网表连接关系 + 单元的物理坐标 + 金属连线形状 + 电源地网络。
+
+#### 2. 标准单元行（Standard Cell Rows）
+
+芯片 core 区域被划分为水平的标准单元行（rows），同一行内的标准单元高度相同，共享 VDD/VSS 电源轨。标准单元的**高度固定**（与工艺相关），**宽度可变**（取决于逻辑复杂度）。
+
+#### 3. 利用率（Utilization）
+
+```
+利用率 = 标准单元总面积 / core 总面积
+```
+
+- 利用率 **过高**（>80%）：布线资源不足 → 拥塞 → 无法 100% 完成布线
+- 利用率 **过低**（<40%）：浪费面积 → die size 大 → 成本高
+- 典型值：50%~75%
+
+本实验设为 50%——低利用率是为了给 234 个 PAD 环留足空间。
+
+#### 4. 拥塞（Congestion）
+
+拥塞 = 局部区域连线密度超过可用的布线轨道数量。
+
+```
+高拥塞的后果：
+  → DRC 违例（短路）
+  → 时序变差（绕远路）
+  → 无法完成布线
+```
+
+在 ICC2 GUI 中可以看到拥塞热力图（红色=拥堵区域），类似交通路况。
+
+#### 5. 时钟树综合（CTS - Clock Tree Synthesis）
+
+**为什么要 CTS**：综合后的网表中，时钟端口直接驱动 ~1,000 个触发器的 CK 端。如果不用 CTS：
+
+- 一个门驱动 1,000 个负载 → transition time 极差 → 时序违例
+- 各触发器收到时钟的时间差异大 → **时钟偏差（skew）** 大
+
+CTS 做的事：在时钟源和每个触发器的 CK 端之间插入**树形 buffer 链**：
+
+```
+          clk_pad (PI pad)
+              │
+         ┌────┴────┐
+        BUF       BUF          ← 第1级
+         │         │
+      ┌──┴──┐  ┌──┴──┐
+     BUF   BUF BUF  BUF        ← 第2级
+      │     │   │    │
+     ...   ... ...  ...        ← ...
+      │     │   │    │
+     FF    FF  FF   FF         ← 触发器
+```
+
+目标参数：
+- **Target Skew**：各触发器收到时钟的时间差目标（我们设 0.2ns）
+- **Target Insertion Delay**：时钟从源到触发器的目标延迟（我们设 0.9ns）
+
+#### 6. 电源网络（Power Grid）
+
+芯片供电不是拉一根线——而是构建多层网格：
+
+```
+      VDD ─────────────────  METAL8 (水平strap)
+      VSS ─────────────────
+        │  │    │  │
+        │  │    │  │         METAL7 (垂直strap)
+        │  │    │  │
+   ┌────┴──┴────┴──┴────┐
+   │  VDD VDD VDD VDD   │   METAL1 (标准单元轨)
+   │  VSS VSS VSS VSS   │
+   └────────────────────┘
+```
+
+IR Drop（电压降）是电源网络的关键指标——电流流过电阻产生压降，导致远离电源 PAD 的区域电压偏低。
+
+#### 7. SPEF 与 SDF（寄生参数与延迟）
+
+```
+提取             转换
+SPEF ──────────→ SDF
+(寄生: R+C)     (延迟: ns)
+   ICC2            PT
+```
+
+- **SPEF** (Standard Parasitic Exchange Format)：描述互连线的电阻 R 和电容 C。两个压缩文件分别对应 max corner（大电容，慢速）和 min corner（小电容，快速）。
+- **SDF** (Standard Delay Format)：描述每个门的 pin-to-pin 延迟值（纳秒）。`$sdf_annotate()` 在仿真中反标这些延迟，使门级仿真反映真实的物理延迟，而非零延迟。
+
+**SPEF → SDF 转换原理**：PT 将 SPEF 中的 R/C 值与标准单元的输入电容、驱动电阻结合，通过非线性延迟模型（NLDM）计算出每个门的实际延迟。为什么需要 PT 做而不是 ICC2 直接出？因为 PT 的延迟计算模型更精确，是签核（signoff）级别的。
+
+#### 8. DRC（Design Rule Check）
+
+物理设计阶段的 DRC 不是逻辑错误——而是**几何规则违例**：
+
+| DRC 类型 | 含义 |
+|:---|:---|
+| Short | 两根不同电位的线碰在一起 |
+| Open | 应该连接的地方断开了 |
+| Min Spacing | 两根线太近（工艺制造能力限制） |
+| Min Width | 线太细（刻蚀良率要求） |
+| Max Transition | 信号跳变太慢（驱动不足） |
+| Max Capacitance | 负载电容太大（扇出过大） |
+
+#### 9. 各阶段工作内容速查
+
+| 阶段 | 做什么 | 输出 |
+|:---|:---|:---|
+| data_setup | 创建 MW 库，读网表+SDC+TLU+寄生模型 | MW CEL `data_setup` |
+| floorplan | 放 PAD → 定 core 大小 → 布电源轨 → 插 pad filler | MW CEL `floorplaned` |
+| place | 标准单元放置到 row 上 → 合法化 | MW CEL `placed` |
+| cts | 插时钟 buffer chain → route 时钟网 | MW CEL `cts` |
+| route | 信号线布线 → DRC 修复 → RC 提取 | MW CEL `route` |
+| PT | SPEF → SDF 转换 | `cpu_pad_pt.sdf` |
+| VCS | 门级网表 + SDF 后仿真 | 仿真波形 |
+
 ## 目录结构
 
 ```
