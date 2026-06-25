@@ -53,7 +53,7 @@ SystemVerilog    Design Compiler    ICC2 + PrimeTime + VCS
 ```
 PC → IROM → instr → Control + ACTL → RF + ALU + MUXs → DM → WriteBack → RF
   ↑                                                                    |
-  └──────────── NPC (pc+4 / branch / jal / jalr) ←────────────────────┘
+  └──────────── NPC (pc+4 / branch / jal / jalr) ←─────────────────────┘
 ```
 
 ### MiniRV 指令集（37 条，全部通过差分测试验证）
@@ -75,6 +75,10 @@ PC → IROM → instr → Control + ACTL → RF + ALU + MUXs → DM → WriteBac
 调试中修复了两个关键问题：
 - **Debug 时序**：组合逻辑 debug 在时钟沿后显示下条指令结果，改为 `always_ff` 寄存器化
 - **字节/半字访存**：lb/lbu/lh/lhu 需提取+扩展，sb/sh 需读-改-写合并
+
+## 3.4 结果截图
+
+![alt text](image-15.png)
 
 # 四、实验二：逻辑综合
 
@@ -120,6 +124,10 @@ compile_ultra
 
 - **`target_library` 未设置**：ICC2 不自动从 `.synopsys_dc.setup` 读取，需在脚本中显式配置
 - **`remove_ideal_network` 不支持多端口**：改为逐端口调用
+
+## 4.4 结果截图
+
+![alt text](image-16.png)
 
 # 五、实验三：版图物理设计
 
@@ -184,6 +192,10 @@ Post-layout simulation completed.
 | 5 | psynopt 时序优化发散 | ICC2 | Placement 阶段不做时序优化 |
 | 6 | route_opt 超过 11 分钟不收敛 | ICC2 | 简化为 initial route + DRC |
 | 7 | SPEF 标注不匹配 | PT | 不影响 SDF 生成，40K+ 错误被抑制 |
+
+## 5.4 结果截图
+
+![alt text](image-17.png)
 
 # 六、工具链与自动化
 
